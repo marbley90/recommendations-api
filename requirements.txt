@@ -1,0 +1,7 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-jose==3.3.0         # for JWT
+pydantic==2.6.4
+redis==5.0.4                # for cache + pub/sub
+aio_pika==9.4.0             # for RabbitMQ (optional if you use it)
+python-dotenv==1.0.1       # load .env config
