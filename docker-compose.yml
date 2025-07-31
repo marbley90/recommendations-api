@@ -10,7 +10,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      - ./data:/app/data        # persist DB file
+      - ./data:/app/data
     env_file:
       - .env
     depends_on:
@@ -23,7 +23,7 @@ services:
     command: python worker/worker.py
     volumes:
       - .:/app
-      - ./data:/app/data        # share DB with worker
+      - ./data:/app/data
     env_file:
       - .env
     depends_on:
@@ -33,3 +33,18 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: pytest tests/
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    depends_on:
+      - redis

@@ -209,3 +209,5 @@ __marimo__/
 .idea
 
 data/*.db
+
+worker/*.log

@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+from datetime import datetime, timedelta
 import os
 
 SECRET_KEY = os.getenv("JWT_SECRET", "mysecret")
@@ -18,3 +19,13 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
+
+
+def create_token(user_id: str):
+    expire = datetime.utcnow() + timedelta(hours=1)
+    payload = {
+        "sub": user_id,
+        "exp": expire
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
