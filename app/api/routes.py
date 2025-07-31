@@ -1,41 +1,36 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import PatientData, RecommendationResponse
 from app.services.recommendation_engine import generate_recommendation
-from app.auth.jwt import verify_token
-from app.services.redis_client import cache_result, publish_event
+from app.models.db import Recommendation
+from app.services.redis_client import cache_result, get_cached_result, publish_event
 import uuid
 
 router = APIRouter()
 
-# In-memory fallback store
-recommendation_store = {}
-
 @router.post("/evaluate", response_model=RecommendationResponse)
-def evaluate(data: PatientData, user=Depends(verify_token)):
+async def evaluate(data: PatientData):
     recommendation = generate_recommendation(data)
-    recommendation_id = str(uuid.uuid4())
+    rec_id = str(uuid.uuid4())
 
-    # Cache result in Redis
-    cache_result(recommendation_id, recommendation)
+    # Store in DB
+    Recommendation.create(id=rec_id, recommendation=recommendation)
 
-    # Emit event for worker
-    publish_event(recommendation_id, data, recommendation)
+    # Optional: Cache and emit event
+    cache_result(rec_id, recommendation)
+    publish_event(rec_id, data, recommendation)
 
-    # Optional in-memory store
-    recommendation_store[recommendation_id] = recommendation
-
-    return RecommendationResponse(
-        recommendation_id=recommendation_id,
-        recommendation=recommendation
-    )
+    return RecommendationResponse(recommendation_id=rec_id, recommendation=recommendation)
 
 @router.get("/recommendation/{rec_id}", response_model=RecommendationResponse)
-def get_recommendation(rec_id: str, user=Depends(verify_token)):
-    from app.services.redis_client import get_cached_result
-
+async def get_recommendation(rec_id: str):
+    # Try Redis cache first
     recommendation = get_cached_result(rec_id)
-    if not recommendation:
-        recommendation = recommendation_store.get(rec_id)
-    if not recommendation:
+    if recommendation:
+        return RecommendationResponse(recommendation_id=rec_id, recommendation=recommendation)
+
+    # Fallback to DB
+    rec = Recommendation.get_or_none(Recommendation.id == rec_id)
+    if not rec:
         raise HTTPException(status_code=404, detail="Recommendation not found")
-    return RecommendationResponse(recommendation_id=rec_id, recommendation=recommendation)
+
+    return RecommendationResponse(recommendation_id=rec.id, recommendation=rec.recommendation)

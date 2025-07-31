@@ -7,4 +7,4 @@ aio_pika==9.4.0             # for RabbitMQ (optional if you use it)
 python-dotenv==1.0.1       # load .env config
 python-jose
 pytest
-
+peewee==3.17.1

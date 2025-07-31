@@ -4,11 +4,13 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+      - ./data:/app/data        # persist DB file
     env_file:
       - .env
     depends_on:
@@ -17,9 +19,11 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile.api.worker
+      dockerfile: Dockerfile
+    command: python worker/worker.py
     volumes:
       - .:/app
+      - ./data:/app/data        # share DB with worker
     env_file:
       - .env
     depends_on:
